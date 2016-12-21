@@ -1,0 +1,48 @@
+
+/*set the JSONRESULT and use regular expression to find each field information*/
+data tmp;
+  length Number ID PublicID CreateTime existingSegmentOutput $100;
+  set GRIDWORK.JSONRESULT;
+
+    array vars(*) Number ID PublicID CreateTime existingSegmentOutput;
+
+     do i = 1 to dim(vars);
+	claimNumber = SCAN(SUBSTR(column1,INDEX(column1, 'Number') +13),1,'",') ;
+	claimID = SCAN(SUBSTR(column1,INDEX(column1, 'ID') +9),1,'",') ;	
+	claimPublicID = SCAN(SUBSTR(column1,INDEX(column1, 'PublicID') +15),1,'",') ;	
+	claimCreateTime = SCAN(SUBSTR(column1,INDEX(column1, 'CreateTime') +17),1,'",') ;
+	existingSegmentOutput = SCAN(SUBSTR(column1,INDEX(column1, 'existingSegmentOutput') +23),1,'",') ;
+	 output;
+	 end;
+	  run;
+ 
+/*select distinct Number*/
+proc sql;
+CREATE TABLE GRIDWORK.Output AS 
+select distinct Number,
+				ID,
+				PublicID,
+				CreateTime,			
+				existingSegmentOutput
+				FROM TMP
+				order by Number;
+				quit;
+
+/*An alternative way to use regular expression*/
+Filename data 'GRIDWORK.JSONRESULT';
+data tempdata;
+infile data lrecl= 32000 truncover scanover;
+	input
+	@'"Number":' Number $255.
+	@'"ID":' ID $255.
+	@'"PublicID":' PublicID $255.
+	@'"CreateTime":' CreateTime $255.
+	@'"existingSegmentOutput":' existingSegmentOutput $255.;
+    Number = scan(Number,1, ',"');
+    ID = scan(ID, 1, ',"');
+    PublicID = scan(PublicID, 1, ',"');
+    CreateTime = scan(CreateTime, 1, ',"');
+	existingSegmentOutput = scan(existingSegmentOutput, 1, ',"');
+run;
+proc print data=tempdata;
+RUN;
